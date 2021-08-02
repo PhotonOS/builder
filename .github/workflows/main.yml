@@ -1,0 +1,416 @@
+name: Create Release
+on:
+  workflow_dispatch:
+    inputs:
+      newversion:
+        description: 'Semantic Version Bump Type (major/minor/patch)'
+        required: true
+      draft:
+        description: 'Draft (true/false)'
+        required: false
+      prerelease:
+        description: 'Prerelease (true/false)'
+        required: false
+      sandboxed:
+        description: 'Sandboxed (true/false) [Do not execute commands]'
+        required: false
+  push:
+    branches:
+      - master
+
+jobs:
+  build:
+    name: build
+    if: 'false' # Currently not needed
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+      matrix:
+        app: [ api, node ]
+    env:
+      CONFIGURATION: prod
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v1
+        
+      - name: Extract NPM Version
+        id: extract_version
+        uses: Saionaro/extract-package-version@v1.1.1
+
+      - name: Login to Docker Container Registry
+        uses: actions-hub/docker/login@master
+        env:
+          DOCKER_USERNAME: ${{ secrets.REGISTRY_USERNAME }}
+          DOCKER_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}
+          DOCKER_REGISTRY_URL: ${{ secrets.REGISTRY_HOST }}
+
+      - name: Environment variables substitution
+        run: |
+          envsubst < "docker/docker-compose.${CONFIGURATION}.yml" > "docker/docker-compose.dist.yml";
+          cp -f docker/docker-compose.dist.yml docker/docker-compose.yml
+        env:
+          REGISTRY_HOST: ${{ secrets.REGISTRY_HOST }}
+          REGISTRY_USERNAME: ${{ secrets.REGISTRY_USERNAME }}
+
+      - name: Build ${{ github.repository }}/${{ matrix.app }}
+        run: npm run build ${{ matrix.app }}-${{ env.CONFIGURATION }}
+
+      - name: Push ${{ github.repository }}/${{ matrix.app }} to GitHub Container Registry
+        uses: actions-hub/docker@master
+        with:
+          args: push ${{ secrets.REGISTRY_HOST }}/${{ secrets.REGISTRY_USERNAME }}/${{ matrix.app }}-${{ env.CONFIGURATION }}:${{ steps.extract_version.outputs.version }}
+
+  build-os-x86_64:
+    runs-on: ubuntu-latest
+    container: yobasystems/alpine-docker
+    timeout-minutes: 15
+    env:
+      # Meta Preferences
+      TAG: release
+      ARCH: x86_64
+      VERSION: edge
+      FILE_TYPE: iso
+      PROFILENAME: node
+      # Working Directories
+      OUT_DIR: /root/out
+      WORK_DIR: /root/work
+      TMP_DIR: /root/tmp
+      # Project Directories (Don't touch!)
+      NODE_DIR: node
+      NPORTS_DIR: nports
+    steps:
+      - name: Provision Qemu Muliarch
+        run: |
+          docker run --rm \
+            --privileged multiarch/qemu-user-static:register --reset
+      
+      - uses: actions/checkout@v2
+        with:
+          repository: 'backbone-internet/nports'
+          path: '${{ env.NPORTS_DIR }}'
+          token: ${{ secrets.ACCESS_TOKEN }}
+        
+      - uses: actions/checkout@v2
+        with:
+          path: '${{ env.NODE_DIR }}'
+          
+      - name: Create Genapkovl
+        working-directory: ${{ env.NPORTS_DIR }}/scripts/
+        env:
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cat << DELIMITER > genapkovl-${{ env.PROFILENAME }}.sh
+          #!/bin/sh -e
+          
+          sudo /bin/sh \
+            ${{ github.workspace }}/${{ env.NODE_DIR }}/scripts/${{ env.ARCH }}/configure.sh \
+              --github-repository ${{ env.GITHUB_REPOSITORY }} \
+              --github-token ${{ secrets.ACTION_TOKEN }} \
+              --tmp-dir ${{ env.TMP_DIR }} \
+              --debug true
+            
+          sudo mkdir -p ${{ env.TMP_DIR }}/root && \
+            sudo mv ${{ github.workspace }}/${{ env.NODE_DIR }} ${{ env.TMP_DIR }}/root
+          
+          sudo tar -c -C ${{ env.TMP_DIR }} etc root | gzip -9n > "${{ env.PROFILENAME }}-${{ env.TAG }}-${{ env.ARCH }}.apkovl.tar.gz"
+          DELIMITER
+          chmod +x genapkovl-*.sh
+      - run: |
+          cat << DELIMITER > build.sh
+          #!/bin/sh -e
+          # @description: Associated with Issue #863 in github/actions
+          # @bug: https://github.com/actions/runner/issues/863
+          mkdir -p /github
+          ln -s /root $HOME
+                    
+          ${{ github.workspace }}/${{ env.NPORTS_DIR }}/make-image.sh \
+              --tag ${{ env.TAG }} \
+              --arch ${{ env.ARCH }} \
+              --repositories-file \
+              ${{ github.workspace }}/${{ env.NODE_DIR }}/scripts/${{ env.ARCH }}/repositories \
+              --packages-file \
+              ${{ github.workspace }}/${{ env.NODE_DIR }}/scripts/${{ env.ARCH }}/packages \
+              --outdir ${{ env.OUT_DIR }} \
+              --name ${{ env.PROFILENAME }} \
+              --workdir ${{ env.WORK_DIR }} \
+              --version VERSION \
+              --apkovl genapkovl-${{ env.PROFILENAME }}.sh \
+              --storage-size 500 # MB
+              
+          DELIMITER
+          chmod +x build.sh
+      
+      - name: Build Image
+        if: always() && contains(github.event_name, 'workflow_dispatch')
+        run: |
+          docker run \
+          --privileged --workdir /root \
+          --name ${{ env.PROFILENAME }}_${{ env.ARCH }} \
+          -v "${{ env.OUT_DIR }}":"${{ env.OUT_DIR }}" \
+          -v "${{ env.WORK_DIR }}":"${{ env.WORK_DIR }}" \
+          -v "${{ env.TMP_DIR }}":"${{ env.TMP_DIR }}" \
+          -v "/var/run/docker.sock":"/var/run/docker.sock" \
+          -v "${{ github.workspace }}":"${{ github.workspace }}" \
+          -e HOME=/root -e CI=true \
+          multiarch/alpine:${{ env.ARCH }}-${{ env.VERSION }} \
+          /bin/sh -c '${{ github.workspace }}/build.sh'
+          
+      - name: Copy Artifacts
+        if: always() && contains(github.event_name, 'workflow_dispatch')
+        run: |
+          docker cp ${{ env.PROFILENAME }}_${{ env.ARCH }}:${{ env.OUT_DIR }}/. ${{ env.OUT_DIR }}
+          ls -la ${{ env.OUT_DIR }}
+      
+      - name: Upload Artifact
+        if: always() && contains(github.event_name, 'workflow_dispatch')
+        uses: actions/upload-artifact@v2
+        with:
+          name: |
+            ${{ env.PROFILENAME }}-${{ env.TAG }}-VERSION-${{ env.ARCH }}
+          path: |
+            ${{ env.OUT_DIR }}/${{ env.PROFILENAME }}-${{ env.TAG }}-VERSION-${{ env.ARCH }}.${{ env.FILE_TYPE }}
+            ${{ env.OUT_DIR }}/luks.key
+          if-no-files-found: error
+
+  build-os-armv8: # ARM Cortex-A72
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      # Meta Preferences
+      TAG: release
+      ARCH: armv8
+      VERSION: v3.11
+      FILE_EXT: img.gz
+      PROFILENAME: node
+      # Working Directories
+      OUT_DIR: /root/out
+      TMP_DIR: /root/tmp
+      # Project Directories (Don't touch!)
+      NODE_DIR: node
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          path: '${{ env.NODE_DIR }}'
+          
+      - name: Login to Docker Container Registry
+        uses: actions-hub/docker/login@master
+        env:
+          DOCKER_USERNAME: ${{ secrets.REGISTRY_USERNAME }}
+          DOCKER_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}
+          DOCKER_REGISTRY_URL: ${{ secrets.REGISTRY_HOST }}
+          
+      - name: Set up QEMU
+        id: qemu
+        uses: docker/setup-qemu-action@v1
+        with:
+          image: tonistiigi/binfmt:latest
+          platforms: all
+          
+      - name: Create Genapkovl
+        env:
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cat << DELIMITER > genapkovl-${{ env.PROFILENAME }}.sh
+          #!/bin/sh -e
+          
+          sudo /bin/sh \
+            ${{ github.workspace }}/${{ env.NODE_DIR }}/scripts/${{ env.ARCH }}/configure.sh \
+              ${{ env.GITHUB_REPOSITORY }} \
+              ${{ env.GITHUB_TOKEN }} \
+              ${{ env.TMP_DIR }}
+            
+          sudo mkdir -p ${{ env.TMP_DIR }}/root && \
+            sudo mv ${{ github.workspace }}/${{ env.NODE_DIR }} ${{ env.TMP_DIR }}/root
+          
+          sudo tar -c -C ${{ env.TMP_DIR }} etc root | gzip -9n > "${{ env.PROFILENAME }}-${{ env.TAG }}-${{ env.ARCH }}.apkovl.tar.gz"
+          DELIMITER
+          chmod +x genapkovl-*.sh
+      
+      - name: Build Image
+        if: always() && contains(github.event_name, 'workflow_dispatch')
+        run: |
+          docker run \
+            --name ${{ env.PROFILENAME }}_${{ env.ARCH }} \
+            -v "${{ github.workspace }}":"${{ github.workspace }}" \
+            -v "${{ env.OUT_DIR }}":"${{ env.OUT_DIR }}" \
+            -v "${{ env.TMP_DIR }}":"${{ env.TMP_DIR }}" \
+            -e ALPINE_BRANCH=${{ env.VERSION }} \
+            -e DEFAULT_ROOT_PASSWORD=${{ env.PROFILENAME }} \
+            -e OUTPUT_PATH=${{ env.OUT_DIR }} \
+            -e DEFAULT_DROPBEAR_ENABLED=true \
+            -e DEFAULT_HOSTNAME=${{ env.PROFILENAME }} \
+            -e CUSTOM_IMAGE_SCRIPT=genapkovl-${{ env.PROFILENAME }}.sh \
+            -e INPUT_PATH=${{ github.workspace }} \
+            -e IMG_NAME=${{ env.PROFILENAME }}-${{ env.TAG }}-VERSION-${{ env.ARCH }} \
+            ${{ secrets.REGISTRY_HOST }}/robin-rpr/raspi-alpine-builder:latest
+      
+      - name: Copy Artifacts
+        if: always() && contains(github.event_name, 'workflow_dispatch')
+        run: |
+          sudo chown -R $(whoami):$(whoami) /root
+          docker cp ${{ env.PROFILENAME }}_${{ env.ARCH }}:${{ env.OUT_DIR }}/. ${{ env.OUT_DIR }}
+      
+      - name: Upload Artifact
+        if: always() && contains(github.event_name, 'workflow_dispatch')
+        uses: actions/upload-artifact@v2
+        with:
+          name: |
+            ${{ env.PROFILENAME }}-${{ env.TAG }}-VERSION-${{ env.ARCH }}
+          path: |
+            ${{ env.OUT_DIR }}/${{ env.PROFILENAME }}-${{ env.TAG }}-VERSION-${{ env.ARCH }}.${{ env.FILE_EXT }}
+            ${{ env.OUT_DIR }}/${{ env.PROFILENAME }}-${{ env.TAG }}-VERSION-${{ env.ARCH }}.${{ env.FILE_EXT }}.sha256
+            ${{ env.OUT_DIR }}/${{ env.PROFILENAME }}-${{ env.TAG }}-VERSION-${{ env.ARCH }}_update.${{ env.FILE_EXT }}
+            ${{ env.OUT_DIR }}/${{ env.PROFILENAME }}-${{ env.TAG }}-VERSION-${{ env.ARCH }}_update.${{ env.FILE_EXT }}.sha256
+          if-no-files-found: error
+
+  publish-containers:
+    name: publish-containers
+    if: success() && contains(github.event_name, 'workflow_dispatch')
+    runs-on: ubuntu-latest
+    needs: [ build ]
+    env:
+      CONFIGURATION: prod
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v1
+
+      - name: Save DigitalOcean kubeconfig
+        uses: digitalocean/action-doctl@master
+        env:
+          DIGITALOCEAN_ACCESS_TOKEN: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+        with:
+          args: kubernetes cluster kubeconfig show node-k8s > .kubeconfig
+
+      - name: Deploy node/api to DigitalOcean Kubernetes
+        if: success() && !contains(github.event.inputs.sandboxed, 'true')
+        run: kubectl --kubeconfig=.kubeconfig apply -f kubernetes/apps/api/kubernetes.${{ env.CONFIGURATION }}.yml
+
+      - name: Verify node/api deployment
+        if: success() && !contains(github.event.inputs.sandboxed, 'true')
+        run: kubectl --kubeconfig=.kubeconfig rollout status -n node deployment/api-${{ env.CONFIGURATION }}-deployment
+
+      - name: Deploy node/node to DigitalOcean Kubernetes
+        if: success() && !contains(github.event.inputs.sandboxed, 'true')
+        run: kubectl --kubeconfig=.kubeconfig apply -f kubernetes/apps/node/kubernetes.${{ env.CONFIGURATION }}.yml
+
+      - name: Verify node/node deployment
+        if: success() && !contains(github.event.inputs.sandboxed, 'true')
+        run: kubectl --kubeconfig=.kubeconfig rollout status -n node deployment/node-${{ env.CONFIGURATION }}-deployment
+
+  publish-os:
+    name: publish-os
+    if: always() && contains(github.event_name, 'workflow_dispatch')
+    runs-on: ubuntu-latest
+    needs: [ build-os-x86_64, build-os-armv8 ]
+    env:
+      PROFILENAME: node
+      TAG: release
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v1
+        
+      - shell: bash
+        run: echo "##[set-output name=branch;]$(echo ${GITHUB_REF#refs/heads/})"
+        id: extract_branch
+      
+      - name: Checkout ${{ steps.extract_branch.outputs.branch }}
+        run: git checkout ${{ steps.extract_branch.outputs.branch }}
+        
+      - name: Clone Submodules
+        run: |
+          gawk -i inplace -v inplace::suffix=.bak -v TOKEN="${{ secrets.ACTION_TOKEN }}" '{ gsub("github.com", "token:"TOKEN"@github.com")}; { print }' .gitmodules
+          git submodule update --init --recursive
+          mv .gitmodules.bak .gitmodules
+        
+      - name: Setup Git
+        run: |
+          git config --global user.email "${GITHUB_ACTOR}@users.noreply.github.com"
+          git config --global user.name "${GITHUB_ACTOR}"
+          
+      - name: Install Packages
+        run: |
+          npm install
+          git add package*.json
+          
+      - name: Bump Version
+        run: |
+          npm version ${{ github.event.inputs.newversion }} \
+          --no-git-tag-version
+        
+      - name: Extract NPM Version
+        id: extract_version
+        uses: Saionaro/extract-package-version@v1.1.1
+  
+      - name: Create Changelog
+        run: |
+          npm run changelog
+          git add CHANGELOG.md
+          
+      - name: Commit Changes
+        run: |
+          git commit -am "Bumped Version to ${{ steps.extract_version.outputs.version }} (${{ github.event.inputs.newversion }})"
+      
+      - name: Push Branch ${{ steps.extract_branch.outputs.branch }}
+        if: success() && !contains(github.event.inputs.sandboxed, 'true')
+        uses: ad-m/github-push-action@master
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          branch: ${{ steps.extract_branch.outputs.branch }}
+          tags: true
+          
+      # Downoad Artifacts
+
+      - name: Download x86_64 Image artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: ${{ env.PROFILENAME }}-${{ env.TAG }}-VERSION-x86_64
+  
+      - name: Download armv8 Image artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: ${{ env.PROFILENAME }}-${{ env.TAG }}-VERSION-armv8
+
+      - name: Add version notiation
+        run: |
+          find . -type f -name '${{ env.PROFILENAME }}-${{ env.TAG }}-*' | while read FILE ; do \
+            newfile="$(echo ${FILE} | sed -e 's/\VERSION/${{ steps.extract_version.outputs.version }}/')"; \
+            mv "${FILE}" "${newfile}"; \
+            done
+      - name: Create Release
+        id: create_release
+        if: success() && !contains(github.event.inputs.sandboxed, 'true')
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v${{ steps.extract_version.outputs.version }}
+          release_name: Release ${{ steps.extract_version.outputs.version }} (${{ github.event.inputs.newversion }})
+          body_path: CHANGELOG.md
+          draft: ${{ github.event.inputs.draft }}
+          prerelease: ${{ github.event.inputs.prerelease }}
+
+      - name: Upload x86_64 Release Asset
+        id: upload-release-asset-x86_64
+        if: success() && !contains(github.event.inputs.sandboxed, 'true')
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ${{ env.PROFILENAME }}-${{ env.TAG }}-${{ steps.extract_version.outputs.version }}-x86_64.iso
+          asset_name: ${{ env.PROFILENAME }}-${{ env.TAG }}-${{ steps.extract_version.outputs.version }}-x86_64
+          asset_content_type: application/gzip
+          
+      - name: Upload armv8 Release Asset
+        id: upload-release-asset-armv8
+        if: success() && !contains(github.event.inputs.sandboxed, 'true')
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ${{ env.PROFILENAME }}-${{ env.TAG }}-${{ steps.extract_version.outputs.version }}-armv8.img.gz
+          asset_name: ${{ env.PROFILENAME }}-${{ env.TAG }}-${{ steps.extract_version.outputs.version }}-armv8
+          asset_content_type: application/gzip
