@@ -1,0 +1,25 @@
+{
+  "name": "airflow",
+  "version": "1.0.0",
+  "description": "A linux distro based on Alpine Linux",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "changelog": "auto-changelog -p --template keepachangelog auto-changelog --breaking-pattern 'BREAKING CHANGE:'"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/robin-rpr/airflow.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/robin-rpr/airflow/issues"
+  },
+  "devDependencies": {
+    "auto-changelog": "^2.2.1",
+    "gh-release": "^4.0.4",
+    "dotenv": "6.2.0"
+  },
+  "homepage": "https://github.com/robin-rpr/airflow#readme"
+}
