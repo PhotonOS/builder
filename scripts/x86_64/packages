@@ -1,0 +1,14 @@
+alpine-base
+util-linux
+bash
+bash-completion
+vim
+docker
+openssh
+iptables
+dialog
+openssh
+openvpn
+wget
+ca-certificates
+gawk

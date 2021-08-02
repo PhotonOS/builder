@@ -1,0 +1,9 @@
+alpine-base
+util-linux
+bash
+bash-completion
+vim
+docker
+openssh
+iptables
+networkmanager
