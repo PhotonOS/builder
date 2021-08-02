@@ -19,47 +19,6 @@ on:
       - master
 
 jobs:
-  build:
-    name: build
-    if: 'false' # Currently not needed
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: true
-      matrix:
-        app: [ api, node ]
-    env:
-      CONFIGURATION: prod
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v1
-        
-      - name: Extract NPM Version
-        id: extract_version
-        uses: Saionaro/extract-package-version@v1.1.1
-
-      - name: Login to Docker Container Registry
-        uses: actions-hub/docker/login@master
-        env:
-          DOCKER_USERNAME: ${{ secrets.REGISTRY_USERNAME }}
-          DOCKER_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}
-          DOCKER_REGISTRY_URL: ${{ secrets.REGISTRY_HOST }}
-
-      - name: Environment variables substitution
-        run: |
-          envsubst < "docker/docker-compose.${CONFIGURATION}.yml" > "docker/docker-compose.dist.yml";
-          cp -f docker/docker-compose.dist.yml docker/docker-compose.yml
-        env:
-          REGISTRY_HOST: ${{ secrets.REGISTRY_HOST }}
-          REGISTRY_USERNAME: ${{ secrets.REGISTRY_USERNAME }}
-
-      - name: Build ${{ github.repository }}/${{ matrix.app }}
-        run: npm run build ${{ matrix.app }}-${{ env.CONFIGURATION }}
-
-      - name: Push ${{ github.repository }}/${{ matrix.app }} to GitHub Container Registry
-        uses: actions-hub/docker@master
-        with:
-          args: push ${{ secrets.REGISTRY_HOST }}/${{ secrets.REGISTRY_USERNAME }}/${{ matrix.app }}-${{ env.CONFIGURATION }}:${{ steps.extract_version.outputs.version }}
-
   build-os-x86_64:
     runs-on: ubuntu-latest
     container: yobasystems/alpine-docker
@@ -378,6 +337,7 @@ jobs:
             newfile="$(echo ${FILE} | sed -e 's/\VERSION/${{ steps.extract_version.outputs.version }}/')"; \
             mv "${FILE}" "${newfile}"; \
             done
+
       - name: Create Release
         id: create_release
         if: success() && !contains(github.event.inputs.sandboxed, 'true')
