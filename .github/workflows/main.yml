@@ -223,41 +223,7 @@ jobs:
             ${{ env.OUT_DIR }}/${{ env.PROFILENAME }}-${{ env.TAG }}-VERSION-${{ env.ARCH }}_update.${{ env.FILE_EXT }}
             ${{ env.OUT_DIR }}/${{ env.PROFILENAME }}-${{ env.TAG }}-VERSION-${{ env.ARCH }}_update.${{ env.FILE_EXT }}.sha256
           if-no-files-found: error
-
-  publish-containers:
-    name: publish-containers
-    if: success() && contains(github.event_name, 'workflow_dispatch')
-    runs-on: ubuntu-latest
-    needs: [ build ]
-    env:
-      CONFIGURATION: prod
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v1
-
-      - name: Save DigitalOcean kubeconfig
-        uses: digitalocean/action-doctl@master
-        env:
-          DIGITALOCEAN_ACCESS_TOKEN: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
-        with:
-          args: kubernetes cluster kubeconfig show node-k8s > .kubeconfig
-
-      - name: Deploy node/api to DigitalOcean Kubernetes
-        if: success() && !contains(github.event.inputs.sandboxed, 'true')
-        run: kubectl --kubeconfig=.kubeconfig apply -f kubernetes/apps/api/kubernetes.${{ env.CONFIGURATION }}.yml
-
-      - name: Verify node/api deployment
-        if: success() && !contains(github.event.inputs.sandboxed, 'true')
-        run: kubectl --kubeconfig=.kubeconfig rollout status -n node deployment/api-${{ env.CONFIGURATION }}-deployment
-
-      - name: Deploy node/node to DigitalOcean Kubernetes
-        if: success() && !contains(github.event.inputs.sandboxed, 'true')
-        run: kubectl --kubeconfig=.kubeconfig apply -f kubernetes/apps/node/kubernetes.${{ env.CONFIGURATION }}.yml
-
-      - name: Verify node/node deployment
-        if: success() && !contains(github.event.inputs.sandboxed, 'true')
-        run: kubectl --kubeconfig=.kubeconfig rollout status -n node deployment/node-${{ env.CONFIGURATION }}-deployment
-
+          
   publish-os:
     name: publish-os
     if: always() && contains(github.event_name, 'workflow_dispatch')
