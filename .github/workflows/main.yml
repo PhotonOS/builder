@@ -237,12 +237,6 @@ jobs:
       - name: Checkout ${{ steps.extract_branch.outputs.branch }}
         run: git checkout ${{ steps.extract_branch.outputs.branch }}
         
-      - name: Clone Submodules
-        run: |
-          gawk -i inplace -v inplace::suffix=.bak -v TOKEN="${{ secrets.ACTION_TOKEN }}" '{ gsub("github.com", "token:"TOKEN"@github.com")}; { print }' .gitmodules
-          git submodule update --init --recursive
-          mv .gitmodules.bak .gitmodules
-        
       - name: Setup Git
         run: |
           git config --global user.email "${GITHUB_ACTOR}@users.noreply.github.com"
