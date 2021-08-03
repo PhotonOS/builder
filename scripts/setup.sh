@@ -38,62 +38,23 @@ readonly VERSION=$(cat package.json \
   | awk -F: '{ print $2 }' \
   | sed 's/[",]//g' \
   | tr -d '[[:space:]]')
-  
-# TODO: Run *only* if not setup yet
-readonly SETUP=$(dialog --keep-tite --ascii-lines --ok-label "Finish" --no-cancel \
-                --title "Factory Setup" \
-                --backtitle "Initial Setup of Node System. You can change these settings later." \
-                --insecure "$@" \
-                --mixedform "\n$NAME-$VERSION" \
-                20 50 0 \
-                "UUID            :" 1 1 "$UUID" 1 20 30 0 2 \
-                "IP-Address      :" 1 1 "$IP" 1 20 20 0 2 \
-                "Hostname        :" 2 1 "n1"  2 20  10 0 0 \
-                3>&1 1>&2 2>&3)
 
-HOSTNAME=$((SETUP | awk '{ print $2 }'))
-# TODO: Apply & Save Settings
-
-dialog_settings() {
-  SETTINGS=$(dialog --keep-tite --ascii-lines --ok-label "Save" \
-                  --title "Settings" \
-                  --insecure "$@" \
-                  --mixedform "\n$NAME-$VERSION" \
-                  20 50 0 \
-                  "UUID            :" 1 1 "$UUID" 1 20 30 0 2 \
-                  "IP-Address      :" 1 1 "$IP" 1 20 20 0 2 \
-                  "Hostname        :" 2 1 "n1"  2 20  10 0 0 \
-                  3>&1 1>&2 2>&3)
-
-  # TODO: Apply & Save Settings
-}
-
-dialog_telemetrics() {
-  ANSWER=$(dialog --keep-tite --ascii-lines \
-            --msgbox "Feature not available. Coming soon!" 11 30 \
-            3>&1 1>&2 2>&3)
-}
-dialog_reset() {
-  ANSWER=$(dialog --keep-tite --ascii-lines \
-            --msgbox "Feature not available. Coming soon!" 11 30 \
-            3>&1 1>&2 2>&3)
+dialog_setup() {
+  setup-alpine
+  exit 0;
 }
 
 while :
 do
 
 ANSWER=$(dialog --item-help --no-tags --default-item "Settings" --keep-tite --ascii-lines --keep-window --no-ok --no-cancel \
-		--title "BACKBONE INTERNET SERVICES" \
+		--title "Airflow OS" \
 		--menu "\n$NAME-$VERSION" 12 32 4 \
-		"settings"     "Settings"     "Edit System Settings" \
-		"telemetrics" "Telemetrics" "See System Telemetrics" \
-    "shell" "Open Shell" "Open a basic Bash Shell" \
-		"reset" "[!] Factory Reset" "Reset device to default. All data will be lost." 3>&1 1>&2 2>&3)
+		"setup"     "Setup & Install"     "Setup & Install System" \
+    		"shell" "Open Shell" "Open a basic Bash Shell" 3>&1 1>&2 2>&3)
 
 case $ANSWER in
-  "settings" ) dialog_settings;;
-  "telemetrics" ) dialog_telemetrics;;
-  "reset" ) dialog_reset;; # TODO
+  "setup" ) dialog_setup;;
   "shell" ) /bin/bash;;
 esac
 
