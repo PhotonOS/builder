@@ -134,6 +134,7 @@ jobs:
 
   build-os-armv8: # ARM Cortex-A72
     runs-on: ubuntu-latest
+    if: 'false'
     timeout-minutes: 15
     env:
       # Meta Preferences
@@ -286,6 +287,7 @@ jobs:
           name: ${{ env.PROFILENAME }}-${{ env.TAG }}-VERSION-x86_64
   
       - name: Download armv8 Image artifact
+        if: 'false'
         uses: actions/download-artifact@v2
         with:
           name: ${{ env.PROFILENAME }}-${{ env.TAG }}-VERSION-armv8
@@ -324,7 +326,7 @@ jobs:
           
       - name: Upload armv8 Release Asset
         id: upload-release-asset-armv8
-        if: success() && !contains(github.event.inputs.sandboxed, 'true')
+        if: 'false'
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
