@@ -152,13 +152,6 @@ jobs:
         with:
           path: '${{ env.NODE_DIR }}'
           
-      - name: Login to Docker Container Registry
-        uses: actions-hub/docker/login@master
-        env:
-          DOCKER_USERNAME: ${{ secrets.REGISTRY_USERNAME }}
-          DOCKER_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}
-          DOCKER_REGISTRY_URL: ${{ secrets.REGISTRY_HOST }}
-          
       - name: Set up QEMU
         id: qemu
         uses: docker/setup-qemu-action@v1
