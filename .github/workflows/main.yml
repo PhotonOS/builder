@@ -329,3 +329,13 @@ jobs:
           asset_path: ${{ env.PROFILENAME }}-${{ env.TAG }}-${{ steps.extract_version.outputs.version }}-armv8.img.gz
           asset_name: ${{ env.PROFILENAME }}-${{ env.TAG }}-${{ steps.extract_version.outputs.version }}-armv8
           asset_content_type: application/gzip
+          
+  delete-artifacts:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete Artifacts
+        uses: jimschubert/delete-artifacts-action@v1
+        with:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+
