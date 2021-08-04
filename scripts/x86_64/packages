@@ -12,3 +12,5 @@ openvpn
 wget
 ca-certificates
 gawk
+gnome
+gnome-apps
