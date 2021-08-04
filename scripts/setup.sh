@@ -40,7 +40,8 @@ readonly VERSION=$(cat package.json \
   | tr -d '[[:space:]]')
 
 dialog_setup() {
-  setup-disk
+  adduser airflow
+  setup-alpine
   exit 0;
 }
 
