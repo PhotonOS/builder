@@ -1,2 +1,5 @@
 https://nl.alpinelinux.org/alpine/v3.11/main
 https://nl.alpinelinux.org/alpine/v3.11/community
+@edge https://nl.alpinelinux.org/alpine/edge/main
+@edgecommunity https://nl.alpinelinux.org/alpine/edge/community
+@testing https://nl.alpinelinux.org/alpine/edge/testing
