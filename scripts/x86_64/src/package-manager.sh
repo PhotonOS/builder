@@ -20,13 +20,8 @@
 
 # @source: https://wiki.alpinelinux.org/wiki/Alpine_Linux_package_management
 
-makefile $(whoami):$(id -g -n) 0644 "$TMP"/etc/apk/repositories <<EOF
-http://nl.alpinelinux.org/alpine/v3.7/main
-http://nl.alpinelinux.org/alpine/v3.7/community
-@edge http://nl.alpinelinux.org/alpine/edge/main
-@edgecommunity http://nl.alpinelinux.org/alpine/edge/community
-@testing http://nl.alpinelinux.org/alpine/edge/testing
-EOF
+makefile $(whoami):$(id -g -n) 0644 "$TMP"/etc/apk/repositories
+cat "$SCRIPTPATH"/repositories >> "$TMP"/etc/apk/repositories
 
 makefile $(whoami):$(id -g -n) 0644 "$TMP"/etc/apk/world
 cat "$SCRIPTPATH"/packages >> "$TMP"/etc/apk/world
