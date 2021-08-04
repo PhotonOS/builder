@@ -118,6 +118,7 @@ rc_add docker boot
 rc_add initialize boot
 rc_add sshd boot
 rc_add node boot
+rc_add gdm default
 
 rc_add local default
 rc_add dropbear default
