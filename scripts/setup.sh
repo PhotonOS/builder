@@ -40,7 +40,7 @@ readonly VERSION=$(cat package.json \
   | tr -d '[[:space:]]')
 
 dialog_setup() {
-  setup-alpine
+  setup-disk
   exit 0;
 }
 
