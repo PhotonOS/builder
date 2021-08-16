@@ -22,5 +22,5 @@ makefile $(whoami):$(id -g -n) 0644 "$TMP"/root/.profile <<EOF
 PS1='\[\033[01;33m\]\h\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]\$ '
 
 # Execute Setup
-sh -c /root/scripts/setup.sh
+# sh -c /root/scripts/setup.sh
 EOF
