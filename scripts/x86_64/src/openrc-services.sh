@@ -48,7 +48,7 @@ makefile $(whoami):$(id -g -n) 0744 "$TMP/etc/local.d/initialize.start" <<EOF
 #   from Backbone Internet Services.
 #
 
-echo "Initializing Node ..."
+echo "Initializing ..."
 
 apk add --update
 
@@ -56,12 +56,10 @@ apk add --update
 rc-service hostname restart || /etc/init.d/hostname restart
 EOF
 
-makefile $(whoami):$(id -g -n) 0744 "$TMP/etc/local.d/node.start" <<EOF
+makefile $(whoami):$(id -g -n) 0744 "$TMP/etc/local.d/helper.start" <<EOF
 #!/bin/sh
 
-# TODO:
-# - Start OpenVpn Client with init Script
-echo "Node Service exists!"
+echo "Helper Service exists!"
 
 EOF
 
@@ -117,8 +115,8 @@ rc_add keymaps boot
 rc_add docker boot
 rc_add initialize boot
 rc_add sshd boot
-rc_add node boot
-rc_add gdm default
+rc_add helper boot
+rc_add sddm boot
 
 rc_add local default
 rc_add dropbear default
