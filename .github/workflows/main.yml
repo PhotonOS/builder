@@ -224,7 +224,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [ build-os-x86_64, build-os-armv8 ]
     env:
-      PROFILENAME: node
+      PROFILENAME: photonos
       TAG: release
     steps:
       - name: Checkout
