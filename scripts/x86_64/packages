@@ -13,4 +13,4 @@ wget
 ca-certificates
 gawk
 sddm
-lxqt-desktop@edge
+lxqt-desktop
