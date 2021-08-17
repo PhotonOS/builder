@@ -1,6 +1,6 @@
 {
   "name": "airflow",
-  "version": "1.1.9",
+  "version": "1.1.10",
   "description": "A linux distro based on Alpine Linux",
   "main": "index.js",
   "scripts": {
