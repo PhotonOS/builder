@@ -13,4 +13,7 @@ wget
 ca-certificates
 gawk
 sddm
-lxqt-desktop
+xdg
+xdg-user-dirs@edgecommunity
+lxqt-desktop@testing
+dbus
