@@ -13,7 +13,6 @@ wget
 ca-certificates
 gawk
 sddm
-xdg
 xdg-user-dirs
 lxqt-desktop
 dbus
