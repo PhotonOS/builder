@@ -14,6 +14,6 @@ ca-certificates
 gawk
 sddm
 xdg
-xdg-user-dirs@edgecommunity
-lxqt-desktop@testing
+xdg-user-dirs
+lxqt-desktop
 dbus
