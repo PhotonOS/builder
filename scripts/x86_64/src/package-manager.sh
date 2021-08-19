@@ -23,6 +23,6 @@
 makefile $(whoami):$(id -g -n) 0644 "$TMP"/etc/apk/repositories
 cat "$SCRIPTPATH"/repositories >> "$TMP"/etc/apk/repositories
 
-# makefile $(whoami):$(id -g -n) 0644 "$TMP"/etc/apk/world
-# cat "$SCRIPTPATH"/packages >> "$TMP"/etc/apk/world
+makefile $(whoami):$(id -g -n) 0644 "$TMP"/etc/apk/world
+cat "$SCRIPTPATH"/packages >> "$TMP"/etc/apk/world
 
