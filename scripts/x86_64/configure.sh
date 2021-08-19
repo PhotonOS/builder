@@ -20,6 +20,7 @@
 
 unset HOSTNAME
 readonly ARCHITECTURE='x86_64'
+readonly DEFAULT_USER='default'
 
 #=============================  M a i n  ==============================#
 
@@ -157,6 +158,9 @@ if [ "$DEBUG" = true ]; then
   echo "NS_SECONDARY=${NS_SECONDARY}"
   printf "\033[1;30m·············································\033[0m\n"
 fi
+
+# Create default user (UID: 1000)
+useradd $DEFAULT_USER
 
 task "System Setup" $SCRIPTPATH/src/system-setup.sh
 task "Copyright & Warning" $SCRIPTPATH/src/copyright-warning.sh
