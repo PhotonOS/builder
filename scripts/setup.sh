@@ -40,14 +40,12 @@ readonly VERSION=$(cat package.json \
   | tr -d '[[:space:]]')
 
 dialog_setup() {
-  adduser me
   setup-disk
   echo "Installation done. Remove device and reboot."
   exit 0;
 }
 
 dialog_try() {
-  adduser me
   service sddm start
   exit 0;
 }
