@@ -40,8 +40,15 @@ readonly VERSION=$(cat package.json \
   | tr -d '[[:space:]]')
 
 dialog_setup() {
-  adduser airflow
-  setup-alpine
+  adduser me
+  setup-disk
+  echo "Installation done. Remove device and reboot."
+  exit 0;
+}
+
+dialog_try() {
+  adduser me
+  service sddm start
   exit 0;
 }
 
@@ -49,13 +56,15 @@ while :
 do
 
 ANSWER=$(dialog --item-help --no-tags --default-item "Settings" --keep-tite --ascii-lines --keep-window --no-ok --no-cancel \
-		--title "Airflow OS" \
+		--title "Photon OS" \
 		--menu "\n$NAME-$VERSION" 12 32 4 \
 		"setup"     "Setup & Install"     "Setup & Install System" \
+		"try"     "Try Demo"     "Do not install System, only live demo" \
     		"shell" "Open Shell" "Open a basic Bash Shell" 3>&1 1>&2 2>&3)
 
 case $ANSWER in
   "setup" ) dialog_setup;;
+  "try" ) dialog_try;;
   "shell" ) /bin/bash;;
 esac
 
