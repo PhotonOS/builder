@@ -102,6 +102,7 @@ rc_add dmesg sysinit
 rc_add mdev sysinit
 rc_add hwdrivers sysinit
 rc_add modloop sysinit
+rc_add udev sysinit
 
 rc_add hwclock boot
 rc_add modules boot
@@ -116,10 +117,12 @@ rc_add docker boot
 rc_add initialize boot
 rc_add sshd boot
 rc_add helper boot
-rc_add sddm boot
+rc_add sddm default
+rc_add dbus boot
 
 rc_add local default
 rc_add dropbear default
+rc_add udev-postmount default
 
 rc_add mount-ro shutdown
 rc_add killprocs shutdown
