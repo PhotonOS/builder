@@ -27,7 +27,7 @@ sed -i -e "s/alpine/\$HOSTNAME/g" /etc/hostname /etc/hosts
 hostname \$HOSTNAME
 EOF
 
-makefile $(whoami):$(id -g -n) 0744 "$TMP/etc/local.d/initialize.start" <<EOF
+makefile $(whoami):$(id -g -n) 0744 "$TMP/etc/local.d/init.start" <<EOF
 #!/bin/sh
 
 #
@@ -48,18 +48,15 @@ makefile $(whoami):$(id -g -n) 0744 "$TMP/etc/local.d/initialize.start" <<EOF
 #   from Backbone Internet Services.
 #
 
-echo "Initializing ..."
-
 apk add --update
 
-# Restart Hostname Service
-rc-service hostname restart || /etc/init.d/hostname restart
 EOF
 
 makefile $(whoami):$(id -g -n) 0744 "$TMP/etc/local.d/helper.start" <<EOF
 #!/bin/sh
 
-echo "Helper Service exists!"
+# Restart Hostname Service
+rc-service hostname restart || /etc/init.d/hostname restart
 
 EOF
 
@@ -97,6 +94,7 @@ sed -E \
     -e 's/^[# ](unicode)=.*/\1=YES/' \
     "$TMP"/etc/rc.conf > /dev/null 2>&1
 
+rc_add init sysinit
 rc_add devfs sysinit
 rc_add dmesg sysinit
 rc_add mdev sysinit
@@ -114,7 +112,7 @@ rc_add networking boot
 rc_add urandom boot
 rc_add keymaps boot
 rc_add docker boot
-rc_add initialize boot
+
 rc_add sshd boot
 rc_add helper boot
 rc_add dbus boot
