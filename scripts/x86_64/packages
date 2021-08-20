@@ -15,4 +15,7 @@ gawk
 sddm
 xdg-user-dirs@edgecommunity
 lxqt-desktop@testing
+xf86-input-evdev
+xf86-input-libinput
+udev
 dbus
