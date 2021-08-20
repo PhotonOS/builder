@@ -48,11 +48,11 @@ makefile $(whoami):$(id -g -n) 0744 "$TMP/etc/local.d/init.start" <<EOF
 #   from Backbone Internet Services.
 #
 
-apk add --update
+apk add --update --quiet --no-progress
 
 EOF
 
-makefile $(whoami):$(id -g -n) 0744 "$TMP/etc/local.d/helper.start" <<EOF
+makefile $(whoami):$(id -g -n) 0744 "$TMP/etc/local.d/configure.start" <<EOF
 #!/bin/sh
 
 # Restart Hostname Service
@@ -99,6 +99,8 @@ step "Update OpenRC Config"
 sed -E \
     -e 's/^[# ](rc_depend_strict)=.*/\1=NO/' \
     -e 's/^[# ](rc_logger)=.*/\1=YES/' \
+    -e 's/^[# ](rc_info)=.*/\1=NO/' \
+    -e 's/^[# ](hostname)=.*/\1=\$HOSTNAME/' \
     -e 's/^[# ](unicode)=.*/\1=YES/' \
     "$TMP"/etc/rc.conf > /dev/null 2>&1
 
@@ -123,8 +125,8 @@ rc_add docker boot
 rc_add sshd boot
 rc_add dbus boot
 rc_add udev-trigger boot
+rc_add configure boot
 
-rc_add helper default
 rc_add local default
 rc_add dropbear default
 rc_add udev-postmount default
