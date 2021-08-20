@@ -104,7 +104,6 @@ sed -E \
     -e 's/^[# ](unicode)=.*/\1=YES/' \
     "$TMP"/etc/rc.conf > /dev/null 2>&1
 
-rc_add init sysinit
 rc_add devfs sysinit
 rc_add dmesg sysinit
 rc_add mdev sysinit
@@ -112,6 +111,7 @@ rc_add hwdrivers sysinit
 rc_add modloop sysinit
 rc_add udev sysinit
 
+rc_add init boot
 rc_add hwclock boot
 rc_add modules boot
 rc_add sysctl boot
