@@ -58,6 +58,14 @@ makefile $(whoami):$(id -g -n) 0744 "$TMP/etc/local.d/helper.start" <<EOF
 # Restart Hostname Service
 rc-service hostname restart || /etc/init.d/hostname restart
 
+#Configuring X11
+X -configure
+# Copy /root/xorg.conf.new to /etc/X11/xorg.conf
+cat /root/xorg.conf.new >> /etc/X11/xorg.conf
+
+# Configure SDDM
+sddm --example-config | tee /etc/sddm.conf
+
 EOF
 
 makefile $(whoami):$(id -g -n) 0744 "$TMP/etc/local.d/ip-eth1.start" <<EOF
