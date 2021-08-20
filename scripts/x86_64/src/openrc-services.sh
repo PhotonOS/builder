@@ -122,6 +122,7 @@ rc_add keymaps boot
 rc_add docker boot
 rc_add sshd boot
 rc_add dbus boot
+rc_add udev-trigger boot
 
 rc_add helper default
 rc_add local default
