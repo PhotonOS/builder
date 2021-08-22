@@ -1,6 +1,6 @@
 {
   "name": "photonos",
-  "version": "1.1.23",
+  "version": "1.1.24",
   "description": "A linux distro based on Alpine Linux",
   "main": "index.js",
   "scripts": {
