@@ -170,6 +170,7 @@ task "Package Manager" $SCRIPTPATH/src/package-manager.sh
 task "Setup OpenVPN" $SCRIPTPATH/src/setup-openvpn.sh
 task "Setup Network" $SCRIPTPATH/src/setup-network.sh
 task "Setup SSH" $SCRIPTPATH/src/setup-ssh.sh
+task "Setup X11" $SCRIPTPATH/src/setup-x11.sh
 task "OpenRC Services" $SCRIPTPATH/src/openrc-services.sh
 
 echo -e "\nFinished! Output created in $TMP"
